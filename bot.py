@@ -4,10 +4,20 @@ import sqlite3
 from datetime import datetime, timedelta, timezone
 
 import pytz
-from aiogram import Bot, Dispatcher, Router
+from aiogram import Bot, Dispatcher, F, Router
 from aiogram.enums import ParseMode
 from aiogram.filters import CommandStart
-from aiogram.types import InlineKeyboardButton, InlineKeyboardMarkup, Message, WebAppInfo
+from aiogram.types import (
+    CallbackQuery,
+    InlineKeyboardButton,
+    InlineKeyboardMarkup,
+    KeyboardButton,
+    Message,
+    ReplyKeyboardMarkup,
+    ReplyKeyboardRemove,
+    WebAppInfo,
+)
+from timezonefinder import TimezoneFinder
 
 BOT_TOKEN = os.getenv("BOT_TOKEN", "")
 DB_PATH = os.getenv("DB_PATH", "calendar_bot.db")
@@ -20,6 +30,7 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 router = Router()
+tf = TimezoneFinder()
 
 
 def db_connect() -> sqlite3.Connection:
@@ -142,8 +153,32 @@ def main_menu_kb() -> InlineKeyboardMarkup:
                     text="📅 Открыть календарь",
                     web_app=WebAppInfo(url=WEBAPP_URL),
                 )
-            ]
+            ],
+            [
+                InlineKeyboardButton(
+                    text="🌍 Установить часовой пояс",
+                    callback_data="menu_tz",
+                )
+            ],
         ]
+    )
+
+
+def back_to_main_kb() -> InlineKeyboardMarkup:
+    return InlineKeyboardMarkup(
+        inline_keyboard=[
+            [InlineKeyboardButton(text="◀️ Главное меню", callback_data="main_menu")],
+        ]
+    )
+
+
+def location_request_kb() -> ReplyKeyboardMarkup:
+    return ReplyKeyboardMarkup(
+        keyboard=[
+            [KeyboardButton(text="📍 Отправить геопозицию", request_location=True)],
+        ],
+        resize_keyboard=True,
+        one_time_keyboard=True,
     )
 
 
@@ -166,8 +201,56 @@ async def cmd_start(message: Message) -> None:
     await message.answer(
         "<b>Личный календарь</b>\n\n"
         "Управляйте задачами через Telegram Web App. "
-        "Напоминания приходят за 30 минут до события.",
+        "Напоминания приходят за 30 минут до события.\n\n"
+        "При необходимости обновите часовой пояс кнопкой ниже.",
         parse_mode=ParseMode.HTML,
+        reply_markup=main_menu_kb(),
+    )
+
+
+@router.callback_query(F.data == "main_menu")
+async def cb_main_menu(call: CallbackQuery) -> None:
+    await call.message.edit_text(
+        "<b>Главное меню</b>\n\nВыберите действие:",
+        parse_mode=ParseMode.HTML,
+        reply_markup=main_menu_kb(),
+    )
+    await call.answer()
+
+
+@router.callback_query(F.data == "menu_tz")
+async def cb_menu_tz(call: CallbackQuery) -> None:
+    await call.message.edit_text(
+        "🌍 <b>Установка часового пояса</b>\n\n"
+        "Нажмите кнопку <b>«📍 Отправить геопозицию»</b> ниже.\n"
+        "Бот определит часовой пояс автоматически.",
+        parse_mode=ParseMode.HTML,
+        reply_markup=back_to_main_kb(),
+    )
+    await call.message.answer(
+        "👇 Отправьте геопозицию:",
+        reply_markup=location_request_kb(),
+    )
+    await call.answer()
+
+
+@router.message(F.location)
+async def handle_location(message: Message) -> None:
+    lat = message.location.latitude
+    lon = message.location.longitude
+    tz_name = tf.timezone_at(lat=lat, lng=lon) or "UTC"
+
+    upsert_user(message.from_user.id, tz_name)
+
+    local_now = datetime.now(pytz.timezone(tz_name)).strftime("%H:%M")
+    await message.answer(
+        f"🌐 <b>Часовой пояс:</b> {tz_name}\n"
+        f"🕒 <b>Локальное время:</b> {local_now}",
+        parse_mode=ParseMode.HTML,
+        reply_markup=ReplyKeyboardRemove(),
+    )
+    await message.answer(
+        "✅ Часовой пояс сохранён.",
         reply_markup=main_menu_kb(),
     )
 
