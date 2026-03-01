@@ -99,19 +99,20 @@ function toInputDatetime(apiValue) {
 }
 
 function pickColor(seed) {
-  const pairs = [
-    ["#7f90ff", "#5c72dd"],
-    ["#78d09c", "#48ab73"],
-    ["#ffbc6c", "#de8f39"],
-    ["#cd8bff", "#915fdb"],
-    ["#7fd5ff", "#499dd9"],
+  const colors = [
+    "#5f7ea3",
+    "#7a89d6",
+    "#6293b8",
+    "#8a78cc",
+    "#6fa99a",
+    "#9a7aa2",
   ];
   let hash = 0;
   for (let i = 0; i < seed.length; i += 1) {
     hash = (hash << 5) - hash + seed.charCodeAt(i);
     hash |= 0;
   }
-  return pairs[Math.abs(hash) % pairs.length];
+  return colors[Math.abs(hash) % colors.length];
 }
 
 function renderUser() {
@@ -234,9 +235,9 @@ function renderList() {
     title.textContent = task.text;
     subtitle.textContent = `${task.scheduled_local} • ${task.reminded ? "напомнено" : "ожидает"}`;
 
-    const [c1, c2] = pickColor(task.text + task.id);
+    const color = pickColor(task.text + task.id);
     avatar.textContent = (task.text.trim()[0] || "З").toUpperCase();
-    avatar.style.background = `linear-gradient(140deg, ${c1}, ${c2})`;
+    avatar.style.background = color;
 
     const open = () => startEdit(task);
     mainBtn.addEventListener("click", open);
