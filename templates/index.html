@@ -12,7 +12,6 @@
     <section class="profile-block">
       <div class="avatar-holder">
         <img id="userAvatar" alt="User avatar" hidden>
-        <div id="userAvatarFallback" class="avatar-fallback">TG</div>
       </div>
 
       <h1 id="userTitle">@username</h1>
@@ -64,6 +63,9 @@
         <label>
           <span>Часовой пояс</span>
           <input id="timezoneInput" type="text" placeholder="Europe/Moscow" autocomplete="off" spellcheck="false">
+          <small class="tz-hint">
+            По умолчанию: UTC, <a id="timezoneBotLink" href="https://t.me/kolendarbot" target="_blank" rel="noopener noreferrer">измените в боте</a>
+          </small>
         </label>
       </div>
 
