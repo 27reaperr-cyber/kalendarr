@@ -4,15 +4,22 @@ const state = {
   tasks: [],
   editingTaskId: null,
   initData: tg.initData || "",
+  activeTab: "add",
+  timezone: "",
 };
 
 const els = {
+  tabAddBtn: document.getElementById("tabAddBtn"),
+  tabTasksBtn: document.getElementById("tabTasksBtn"),
+  tabAdd: document.getElementById("tabAdd"),
+  tabTasks: document.getElementById("tabTasks"),
   taskText: document.getElementById("taskText"),
   taskDatetime: document.getElementById("taskDatetime"),
   formTitle: document.getElementById("formTitle"),
   editActions: document.getElementById("editActions"),
   cancelEditBtn: document.getElementById("cancelEditBtn"),
   timezoneInput: document.getElementById("timezoneInput"),
+  timezoneCurrent: document.getElementById("timezoneCurrent"),
   saveTimezoneBtn: document.getElementById("saveTimezoneBtn"),
   refreshBtn: document.getElementById("refreshBtn"),
   loading: document.getElementById("loading"),
@@ -21,6 +28,42 @@ const els = {
   emptyState: document.getElementById("emptyState"),
   taskTemplate: document.getElementById("taskTemplate"),
 };
+
+function switchTab(tabName) {
+  state.activeTab = tabName;
+
+  const isAdd = tabName === "add";
+  els.tabAddBtn.classList.toggle("active", isAdd);
+  els.tabTasksBtn.classList.toggle("active", !isAdd);
+
+  els.tabAdd.hidden = !isAdd;
+  els.tabAdd.classList.toggle("active", isAdd);
+  els.tabTasks.hidden = isAdd;
+  els.tabTasks.classList.toggle("active", !isAdd);
+
+  updateMainButtonState();
+}
+
+function updateMainButtonState() {
+  if (!state.initData) {
+    tg.MainButton.hide();
+    return;
+  }
+
+  if (state.activeTab !== "add") {
+    tg.MainButton.hide();
+    return;
+  }
+
+  tg.MainButton.show();
+  if (state.editingTaskId) {
+    tg.MainButton.setText("Сохранить изменения");
+    tg.MainButton.color = "#1d95d5";
+  } else {
+    tg.MainButton.setText("Добавить задачу");
+    tg.MainButton.color = "#2aabee";
+  }
+}
 
 function showLoading(value) {
   els.loading.hidden = !value;
@@ -73,10 +116,9 @@ function resetForm() {
   state.editingTaskId = null;
   els.formTitle.textContent = "Новая задача";
   els.editActions.hidden = true;
-  tg.MainButton.setText("Добавить задачу");
-  tg.MainButton.color = "#2aabee";
   els.taskText.value = "";
   els.taskDatetime.value = "";
+  updateMainButtonState();
 }
 
 function startEdit(task) {
@@ -85,8 +127,7 @@ function startEdit(task) {
   els.editActions.hidden = false;
   els.taskText.value = task.text;
   els.taskDatetime.value = apiToLocalInput(task.scheduled_local);
-  tg.MainButton.setText("Сохранить изменения");
-  tg.MainButton.color = "#1d95d5";
+  switchTab("add");
   window.scrollTo({ top: 0, behavior: "smooth" });
 }
 
@@ -128,9 +169,15 @@ function renderTasks() {
   });
 }
 
+function renderTimezone(timezone) {
+  state.timezone = timezone;
+  els.timezoneInput.value = timezone;
+  els.timezoneCurrent.textContent = `Текущий: ${timezone}`;
+}
+
 async function loadTimezone() {
   const data = await api("/api/user/timezone", { method: "GET" });
-  els.timezoneInput.value = data.timezone;
+  renderTimezone(data.timezone);
 }
 
 async function saveTimezone() {
@@ -143,10 +190,11 @@ async function saveTimezone() {
   try {
     showError("");
     showLoading(true);
-    await api("/api/user/timezone", {
+    const data = await api("/api/user/timezone", {
       method: "PUT",
       body: JSON.stringify({ timezone }),
     });
+    renderTimezone(data.timezone);
     await loadTasks();
   } catch (error) {
     showError(error.message);
@@ -197,6 +245,7 @@ async function submitTask() {
 
     resetForm();
     await loadTasks();
+    switchTab("tasks");
   } catch (error) {
     showError(error.message);
   } finally {
@@ -208,16 +257,10 @@ async function initialize() {
   tg.ready();
   tg.expand();
 
-  tg.MainButton.setText("Добавить задачу");
-  tg.MainButton.show();
   tg.MainButton.onClick(submitTask);
 
-  if (!state.initData) {
-    showError("Откройте приложение внутри Telegram");
-    tg.MainButton.hide();
-    return;
-  }
-
+  els.tabAddBtn.addEventListener("click", () => switchTab("add"));
+  els.tabTasksBtn.addEventListener("click", () => switchTab("tasks"));
   els.saveTimezoneBtn.addEventListener("click", saveTimezone);
   els.refreshBtn.addEventListener("click", async () => {
     try {
@@ -232,9 +275,16 @@ async function initialize() {
   });
   els.cancelEditBtn.addEventListener("click", resetForm);
 
+  if (!state.initData) {
+    showError("Откройте приложение внутри Telegram");
+    updateMainButtonState();
+    return;
+  }
+
   try {
     showLoading(true);
     await Promise.all([loadTimezone(), loadTasks()]);
+    switchTab("add");
   } catch (error) {
     showError(error.message);
   } finally {

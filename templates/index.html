@@ -14,35 +14,48 @@
       <p>Задачи и напоминания в Telegram</p>
     </header>
 
-    <section class="card">
-      <h2>Часовой пояс</h2>
-      <div class="row">
-        <input id="timezoneInput" type="text" placeholder="Например: Europe/Moscow" autocomplete="off">
-        <button id="saveTimezoneBtn" type="button">Сохранить</button>
-      </div>
-      <small id="timezoneHint">Используйте IANA-таймзону, например Europe/Moscow.</small>
-    </section>
+    <nav class="tabs card" aria-label="Вкладки">
+      <button id="tabAddBtn" type="button" class="tab-btn active" data-tab="add">Добавить</button>
+      <button id="tabTasksBtn" type="button" class="tab-btn" data-tab="tasks">Задачи</button>
+    </nav>
 
-    <section class="card">
-      <h2 id="formTitle">Новая задача</h2>
-      <div class="column">
-        <input id="taskText" type="text" maxlength="500" placeholder="Текст задачи">
-        <input id="taskDatetime" type="datetime-local">
-        <div class="row" id="editActions" hidden>
-          <button id="cancelEditBtn" type="button" class="ghost">Отмена</button>
-        </div>
-      </div>
-    </section>
-
-    <section class="card">
-      <div class="row header-row">
-        <h2>Задачи</h2>
-        <button id="refreshBtn" type="button" class="ghost">Обновить</button>
-      </div>
+    <section id="commonStatus" class="card">
       <div id="loading" class="status" hidden>Загрузка...</div>
       <div id="error" class="status error" hidden></div>
-      <div id="tasks" class="tasks"></div>
-      <div id="emptyState" class="status" hidden>Пока нет задач</div>
+    </section>
+
+    <section id="tabAdd" class="tab-panel active" aria-labelledby="tabAddBtn">
+      <section class="card">
+        <h2>Часовой пояс</h2>
+        <p id="timezoneCurrent" class="timezone-current">Текущий: -</p>
+        <div class="row">
+          <input id="timezoneInput" type="text" placeholder="Например: Europe/Moscow" autocomplete="off">
+          <button id="saveTimezoneBtn" type="button">Сохранить</button>
+        </div>
+        <small id="timezoneHint">Если вы выбирали пояс через геолокацию в боте, он уже подставлен здесь.</small>
+      </section>
+
+      <section class="card">
+        <h2 id="formTitle">Новая задача</h2>
+        <div class="column">
+          <input id="taskText" type="text" maxlength="500" placeholder="Текст задачи">
+          <input id="taskDatetime" type="datetime-local">
+          <div class="row" id="editActions" hidden>
+            <button id="cancelEditBtn" type="button" class="ghost">Отмена</button>
+          </div>
+        </div>
+      </section>
+    </section>
+
+    <section id="tabTasks" class="tab-panel" aria-labelledby="tabTasksBtn" hidden>
+      <section class="card">
+        <div class="row header-row">
+          <h2>Задачи</h2>
+          <button id="refreshBtn" type="button" class="ghost">Обновить</button>
+        </div>
+        <div id="tasks" class="tasks"></div>
+        <div id="emptyState" class="status" hidden>Пока нет задач</div>
+      </section>
     </section>
   </main>
 

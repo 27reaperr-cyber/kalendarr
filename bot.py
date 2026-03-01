@@ -82,6 +82,15 @@ def upsert_user(user_id: int, tz: str = "UTC") -> None:
         conn.commit()
 
 
+def ensure_user(user_id: int) -> None:
+    with db_connect() as conn:
+        conn.execute(
+            "INSERT OR IGNORE INTO users (user_id, timezone) VALUES (?, 'UTC')",
+            (user_id,),
+        )
+        conn.commit()
+
+
 def add_task(user_id: int, text: str, scheduled_utc: str) -> int:
     with db_connect() as conn:
         cur = conn.execute(
@@ -197,7 +206,7 @@ def utc_to_local(utc_dt: str, tz_name: str) -> str:
 
 @router.message(CommandStart())
 async def cmd_start(message: Message) -> None:
-    upsert_user(message.from_user.id)
+    ensure_user(message.from_user.id)
     await message.answer(
         "<b>Личный календарь</b>\n\n"
         "Управляйте задачами через Telegram Web App. "

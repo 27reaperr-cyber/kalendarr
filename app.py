@@ -22,6 +22,7 @@ from bot import (
     create_dispatcher,
     db_init,
     delete_task,
+    ensure_user,
     get_task,
     get_tasks,
     get_user_tz,
@@ -124,7 +125,7 @@ async def get_current_user(
     x_telegram_init_data: str | None = Header(default=None),
 ) -> dict[str, Any]:
     auth = verify_telegram_webapp_data(x_telegram_init_data or "")
-    upsert_user(auth["user_id"])
+    ensure_user(auth["user_id"])
     return auth
 
 

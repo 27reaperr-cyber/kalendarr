@@ -52,6 +52,41 @@ body {
   color: var(--muted);
 }
 
+.tabs {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+
+.tab-btn {
+  border-radius: 12px;
+  border: 1px solid #cae7f8;
+  background: #f6fbff;
+  color: #1d95d5;
+  padding: 11px 12px;
+  font-size: 0.95rem;
+  cursor: pointer;
+}
+
+.tab-btn.active {
+  background: var(--primary);
+  border-color: transparent;
+  color: #fff;
+}
+
+.tab-panel {
+  display: none;
+  gap: 12px;
+}
+
+.tab-panel.active {
+  display: grid;
+}
+
+#commonStatus {
+  padding: 10px;
+}
+
 h2 {
   margin: 0 0 10px;
   font-size: 1rem;
@@ -117,6 +152,12 @@ button.danger:hover {
 .column {
   display: grid;
   gap: 8px;
+}
+
+.timezone-current {
+  margin: 0 0 8px;
+  color: var(--text);
+  font-weight: 600;
 }
 
 #timezoneHint {
