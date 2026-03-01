@@ -11,7 +11,6 @@ const state = {
 
 const els = {
   userAvatar: document.getElementById("userAvatar"),
-  userAvatarFallback: document.getElementById("userAvatarFallback"),
   userTitle: document.getElementById("userTitle"),
   botLink: document.getElementById("botLink"),
   tasksCount: document.getElementById("tasksCount"),
@@ -117,37 +116,19 @@ function pickColor(seed) {
 
 function renderUser() {
   const user = tg.initDataUnsafe?.user;
-  const title = requiredElement(els.userTitle, "userTitle");
   const link = requiredElement(els.botLink, "botLink");
   const avatar = requiredElement(els.userAvatar, "userAvatar");
-  const fallback = requiredElement(els.userAvatarFallback, "userAvatarFallback");
 
-  const username = user?.username ? `@${user.username}` : "@username";
-  title.textContent = username;
   link.href = user?.username ? `https://t.me/${user.username}` : "https://t.me/kolendarbot";
-
-  const fullName = [user?.first_name, user?.last_name].filter(Boolean).join(" ").trim();
-  const initials = (fullName || username)
-    .replace("@", "")
-    .split(" ")
-    .filter(Boolean)
-    .slice(0, 2)
-    .map((x) => x[0].toUpperCase())
-    .join("") || "TG";
-
-  fallback.textContent = initials;
 
   if (user?.photo_url) {
     avatar.src = user.photo_url;
     avatar.hidden = false;
-    fallback.hidden = true;
     avatar.onerror = () => {
       avatar.hidden = true;
-      fallback.hidden = false;
     };
   } else {
     avatar.hidden = true;
-    fallback.hidden = false;
   }
 }
 
