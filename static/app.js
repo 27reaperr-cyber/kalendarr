@@ -1,10 +1,10 @@
 const tg = window.Telegram.WebApp;
 
 const state = {
-  tasks: [],
-  filteredTasks: [],
-  editingTaskId: null,
   initData: tg.initData || "",
+  tasks: [],
+  filtered: [],
+  editingTaskId: null,
   timezone: "UTC",
   busy: false,
 };
@@ -19,7 +19,9 @@ const els = {
   createTaskBtn: document.getElementById("createTaskBtn"),
   tasksList: document.getElementById("tasksList"),
   emptyState: document.getElementById("emptyState"),
-  editorCard: document.getElementById("editorCard"),
+  editorSheet: document.getElementById("editorSheet"),
+  sheetBackdrop: document.getElementById("sheetBackdrop"),
+  sheetPanel: document.getElementById("sheetPanel"),
   editorTitle: document.getElementById("editorTitle"),
   taskText: document.getElementById("taskText"),
   taskDatetime: document.getElementById("taskDatetime"),
@@ -27,29 +29,36 @@ const els = {
   saveTaskBtn: document.getElementById("saveTaskBtn"),
   cancelEditBtn: document.getElementById("cancelEditBtn"),
   deleteTaskBtn: document.getElementById("deleteTaskBtn"),
-  timezoneCurrent: document.getElementById("timezoneCurrent"),
   toastStack: document.getElementById("toastStack"),
   taskRowTemplate: document.getElementById("taskRowTemplate"),
 };
 
-function setBusy(value) {
-  state.busy = value;
-  els.saveTaskBtn.disabled = value;
-  els.cancelEditBtn.disabled = value;
-  els.deleteTaskBtn.disabled = value;
-  els.createTaskBtn.disabled = value;
+function requiredElement(element, id) {
+  if (!element) {
+    throw new Error(`Missing required element: ${id}`);
+  }
+  return element;
 }
 
 function showToast(message, type = "success") {
+  const stack = requiredElement(els.toastStack, "toastStack");
   const toast = document.createElement("div");
   toast.className = `toast ${type === "error" ? "toast-error" : "toast-success"}`;
   toast.textContent = message;
-  els.toastStack.appendChild(toast);
-  window.setTimeout(() => toast.remove(), 3400);
+  stack.appendChild(toast);
+  window.setTimeout(() => toast.remove(), 3200);
 }
 
 function handleError(error, fallback = "Ошибка") {
   showToast(error?.message || fallback, "error");
+}
+
+function setBusy(value) {
+  state.busy = value;
+  requiredElement(els.saveTaskBtn, "saveTaskBtn").disabled = value;
+  requiredElement(els.cancelEditBtn, "cancelEditBtn").disabled = value;
+  requiredElement(els.deleteTaskBtn, "deleteTaskBtn").disabled = value;
+  requiredElement(els.createTaskBtn, "createTaskBtn").disabled = value;
 }
 
 function withAuthHeaders(extra = {}) {
@@ -77,77 +86,71 @@ async function api(path, options = {}) {
   return data;
 }
 
-function normalizeDatetimeValue(value) {
-  return value.slice(0, 16);
+function normalizeDatetime(value) {
+  return value ? value.slice(0, 16) : "";
 }
 
-function localInputToApi(value) {
-  return normalizeDatetimeValue(value).replace("T", " ");
+function toApiDatetime(localInputValue) {
+  return normalizeDatetime(localInputValue).replace("T", " ");
 }
 
-function apiToLocalInput(value) {
-  return value.replace(" ", "T");
+function toInputDatetime(apiValue) {
+  return apiValue.replace(" ", "T");
 }
 
-function pickAvatarColor(seed) {
-  const colors = [
-    ["#7b8dff", "#576ddc"],
-    ["#69c58f", "#3d9f66"],
-    ["#ffb56a", "#e18a32"],
-    ["#be86ff", "#8758d4"],
-    ["#7fd7ff", "#4298d8"],
+function pickColor(seed) {
+  const pairs = [
+    ["#7f90ff", "#5c72dd"],
+    ["#78d09c", "#48ab73"],
+    ["#ffbc6c", "#de8f39"],
+    ["#cd8bff", "#915fdb"],
+    ["#7fd5ff", "#499dd9"],
   ];
   let hash = 0;
   for (let i = 0; i < seed.length; i += 1) {
     hash = (hash << 5) - hash + seed.charCodeAt(i);
     hash |= 0;
   }
-  const idx = Math.abs(hash) % colors.length;
-  return colors[idx];
+  return pairs[Math.abs(hash) % pairs.length];
 }
 
-function renderUserInfo() {
+function renderUser() {
   const user = tg.initDataUnsafe?.user;
+  const title = requiredElement(els.userTitle, "userTitle");
+  const link = requiredElement(els.botLink, "botLink");
+  const avatar = requiredElement(els.userAvatar, "userAvatar");
+  const fallback = requiredElement(els.userAvatarFallback, "userAvatarFallback");
+
   const username = user?.username ? `@${user.username}` : "@username";
+  title.textContent = username;
+  link.href = user?.username ? `https://t.me/${user.username}` : "https://t.me/kolendarbot";
+
   const fullName = [user?.first_name, user?.last_name].filter(Boolean).join(" ").trim();
-
-  els.userTitle.textContent = username;
-  els.botLink.href = user?.username ? `https://t.me/${user.username}` : "https://t.me/kolendarbot";
-
-  const fallbackText = (fullName || username || "TG")
+  const initials = (fullName || username)
     .replace("@", "")
     .split(" ")
     .filter(Boolean)
     .slice(0, 2)
-    .map((chunk) => chunk[0].toUpperCase())
+    .map((x) => x[0].toUpperCase())
     .join("") || "TG";
 
-  els.userAvatarFallback.textContent = fallbackText;
+  fallback.textContent = initials;
 
   if (user?.photo_url) {
-    els.userAvatar.src = user.photo_url;
-    els.userAvatar.hidden = false;
-    els.userAvatarFallback.hidden = true;
+    avatar.src = user.photo_url;
+    avatar.hidden = false;
+    fallback.hidden = true;
+    avatar.onerror = () => {
+      avatar.hidden = true;
+      fallback.hidden = false;
+    };
   } else {
-    els.userAvatar.hidden = true;
-    els.userAvatarFallback.hidden = false;
+    avatar.hidden = true;
+    fallback.hidden = false;
   }
 }
 
-function filterTasks() {
-  const query = els.searchInput.value.trim().toLowerCase();
-  if (!query) {
-    state.filteredTasks = [...state.tasks];
-    return;
-  }
-
-  state.filteredTasks = state.tasks.filter((task) => {
-    const haystack = `${task.text} ${task.scheduled_local}`.toLowerCase();
-    return haystack.includes(query);
-  });
-}
-
-function pluralizeTasks(count) {
+function pluralize(count) {
   if (count === 1) {
     return "задача";
   }
@@ -157,93 +160,143 @@ function pluralizeTasks(count) {
   return "задач";
 }
 
-function renderTasksCount() {
+function renderCount() {
   const count = state.tasks.length;
-  els.tasksCount.textContent = `${count} ${pluralizeTasks(count)}`;
+  requiredElement(els.tasksCount, "tasksCount").textContent = `${count}`;
+  requiredElement(els.createTaskBtn, "createTaskBtn").setAttribute(
+    "aria-label",
+    `Создать новую задачу. Сейчас ${count} ${pluralize(count)}`
+  );
 }
 
-function renderTasks() {
-  filterTasks();
-  els.tasksList.innerHTML = "";
-
-  if (!state.filteredTasks.length) {
-    els.emptyState.hidden = false;
+function applyFilter() {
+  const query = requiredElement(els.searchInput, "searchInput").value.trim().toLowerCase();
+  if (!query) {
+    state.filtered = [...state.tasks];
     return;
   }
 
-  els.emptyState.hidden = true;
-
-  state.filteredTasks.forEach((task) => {
-    const node = els.taskRowTemplate.content.firstElementChild.cloneNode(true);
-
-    const avatar = node.querySelector(".task-avatar");
-    const title = node.querySelector(".task-title");
-    const sub = node.querySelector(".task-sub");
-    const mainBtn = node.querySelector(".task-main");
-    const editBtn = node.querySelector(".task-edit");
-
-    title.textContent = task.text;
-    sub.textContent = `${task.scheduled_local} • ${task.reminded ? "напомнено" : "ожидает"}`;
-
-    const initials = task.text.trim().slice(0, 1).toUpperCase() || "З";
-    const [c1, c2] = pickAvatarColor(task.text + String(task.id));
-    avatar.textContent = initials;
-    avatar.style.background = `linear-gradient(140deg, ${c1}, ${c2})`;
-
-    const openEdit = () => startEdit(task);
-    mainBtn.addEventListener("click", openEdit);
-    editBtn.addEventListener("click", openEdit);
-
-    els.tasksList.appendChild(node);
+  state.filtered = state.tasks.filter((task) => {
+    const hay = `${task.text} ${task.scheduled_local}`.toLowerCase();
+    return hay.includes(query);
   });
 }
 
-function openEditor() {
-  els.editorCard.hidden = false;
-  els.editorCard.scrollIntoView({ behavior: "smooth", block: "nearest" });
+function bindSwipeOpen(row, task) {
+  let startX = 0;
+  let deltaX = 0;
+
+  row.addEventListener("touchstart", (event) => {
+    if (!event.touches[0]) return;
+    startX = event.touches[0].clientX;
+    deltaX = 0;
+  }, { passive: true });
+
+  row.addEventListener("touchmove", (event) => {
+    if (!event.touches[0]) return;
+    deltaX = event.touches[0].clientX - startX;
+    if (Math.abs(deltaX) > 6) {
+      row.style.transform = `translateX(${Math.max(-42, Math.min(42, deltaX * 0.22))}px)`;
+    }
+  }, { passive: true });
+
+  row.addEventListener("touchend", () => {
+    row.style.transform = "translateX(0)";
+    if (Math.abs(deltaX) > 72) {
+      startEdit(task);
+    }
+  });
 }
 
-function closeEditor() {
+function renderList() {
+  applyFilter();
+  const list = requiredElement(els.tasksList, "tasksList");
+  const empty = requiredElement(els.emptyState, "emptyState");
+  const tpl = requiredElement(els.taskRowTemplate, "taskRowTemplate");
+
+  list.innerHTML = "";
+
+  if (!state.filtered.length) {
+    empty.hidden = false;
+    return;
+  }
+
+  empty.hidden = true;
+
+  state.filtered.forEach((task) => {
+    const row = tpl.content.firstElementChild.cloneNode(true);
+    const avatar = row.querySelector(".task-row-avatar");
+    const title = row.querySelector(".task-row-title");
+    const subtitle = row.querySelector(".task-row-subtitle");
+    const mainBtn = row.querySelector(".task-row-main");
+    const arrowBtn = row.querySelector(".task-row-arrow");
+
+    title.textContent = task.text;
+    subtitle.textContent = `${task.scheduled_local} • ${task.reminded ? "напомнено" : "ожидает"}`;
+
+    const [c1, c2] = pickColor(task.text + task.id);
+    avatar.textContent = (task.text.trim()[0] || "З").toUpperCase();
+    avatar.style.background = `linear-gradient(140deg, ${c1}, ${c2})`;
+
+    const open = () => startEdit(task);
+    mainBtn.addEventListener("click", open);
+    arrowBtn.addEventListener("click", open);
+
+    bindSwipeOpen(row, task);
+    list.appendChild(row);
+  });
+}
+
+function openSheet() {
+  const sheet = requiredElement(els.editorSheet, "editorSheet");
+  sheet.hidden = false;
+  requestAnimationFrame(() => sheet.classList.add("open"));
+}
+
+function closeSheet() {
+  const sheet = requiredElement(els.editorSheet, "editorSheet");
+  sheet.classList.remove("open");
+  window.setTimeout(() => {
+    sheet.hidden = true;
+  }, 220);
+
   state.editingTaskId = null;
-  els.editorTitle.textContent = "Новая задача";
-  els.taskText.value = "";
-  els.taskDatetime.value = "";
-  els.timezoneInput.value = state.timezone;
-  els.deleteTaskBtn.hidden = true;
-  els.editorCard.hidden = true;
+  requiredElement(els.editorTitle, "editorTitle").textContent = "Новая задача";
+  requiredElement(els.taskText, "taskText").value = "";
+  requiredElement(els.taskDatetime, "taskDatetime").value = "";
+  requiredElement(els.timezoneInput, "timezoneInput").value = state.timezone;
+  requiredElement(els.deleteTaskBtn, "deleteTaskBtn").hidden = true;
 }
 
 function startCreate() {
   state.editingTaskId = null;
-  els.editorTitle.textContent = "Новая задача";
-  els.taskText.value = "";
-  els.taskDatetime.value = "";
-  els.timezoneInput.value = state.timezone;
-  els.deleteTaskBtn.hidden = true;
-  openEditor();
+  requiredElement(els.editorTitle, "editorTitle").textContent = "Новая задача";
+  requiredElement(els.taskText, "taskText").value = "";
+  requiredElement(els.taskDatetime, "taskDatetime").value = "";
+  requiredElement(els.timezoneInput, "timezoneInput").value = state.timezone;
+  requiredElement(els.deleteTaskBtn, "deleteTaskBtn").hidden = true;
+  openSheet();
 }
 
 function startEdit(task) {
   state.editingTaskId = task.id;
-  els.editorTitle.textContent = "Редактирование задачи";
-  els.taskText.value = task.text;
-  els.taskDatetime.value = apiToLocalInput(task.scheduled_local);
-  els.timezoneInput.value = state.timezone;
-  els.deleteTaskBtn.hidden = false;
-  openEditor();
+  requiredElement(els.editorTitle, "editorTitle").textContent = "Редактирование задачи";
+  requiredElement(els.taskText, "taskText").value = task.text;
+  requiredElement(els.taskDatetime, "taskDatetime").value = toInputDatetime(task.scheduled_local);
+  requiredElement(els.timezoneInput, "timezoneInput").value = state.timezone;
+  requiredElement(els.deleteTaskBtn, "deleteTaskBtn").hidden = false;
+  openSheet();
 }
 
 async function loadTimezone() {
   const data = await api("/api/user/timezone", { method: "GET" });
   state.timezone = data.timezone;
-  els.timezoneCurrent.textContent = `Текущий пояс: ${state.timezone}`;
-  if (!state.editingTaskId) {
-    els.timezoneInput.value = state.timezone;
-  }
+  requiredElement(els.timezoneInput, "timezoneInput").value = data.timezone;
 }
 
-async function saveTimezoneIfChanged() {
-  const timezone = els.timezoneInput.value.trim();
+async function maybeSaveTimezone() {
+  const tzInput = requiredElement(els.timezoneInput, "timezoneInput");
+  const timezone = tzInput.value.trim();
   if (!timezone || timezone === state.timezone) {
     return;
   }
@@ -254,23 +307,20 @@ async function saveTimezoneIfChanged() {
   });
 
   state.timezone = data.timezone;
-  els.timezoneCurrent.textContent = `Текущий пояс: ${state.timezone}`;
 }
 
 async function loadTasks() {
-  const tasks = await api("/api/tasks", { method: "GET" });
-  state.tasks = [...tasks].sort((a, b) => a.scheduled_utc.localeCompare(b.scheduled_utc));
-  renderTasksCount();
-  renderTasks();
+  const rows = await api("/api/tasks", { method: "GET" });
+  state.tasks = [...rows].sort((a, b) => a.scheduled_utc.localeCompare(b.scheduled_utc));
+  renderCount();
+  renderList();
 }
 
 async function saveTask() {
-  if (state.busy) {
-    return;
-  }
+  if (state.busy) return;
 
-  const text = els.taskText.value.trim();
-  const datetime = normalizeDatetimeValue(els.taskDatetime.value);
+  const text = requiredElement(els.taskText, "taskText").value.trim();
+  const datetime = normalizeDatetime(requiredElement(els.taskDatetime, "taskDatetime").value);
 
   if (!text) {
     showToast("Введите текст задачи", "error");
@@ -283,11 +333,11 @@ async function saveTask() {
 
   try {
     setBusy(true);
-    await saveTimezoneIfChanged();
+    await maybeSaveTimezone();
 
     const payload = {
       text,
-      scheduled_local: localInputToApi(datetime),
+      scheduled_local: toApiDatetime(datetime),
     };
 
     if (state.editingTaskId) {
@@ -305,49 +355,57 @@ async function saveTask() {
     }
 
     await loadTasks();
-    closeEditor();
+    closeSheet();
   } catch (error) {
-    handleError(error, "Ошибка сохранения задачи");
+    handleError(error, "Не удалось сохранить задачу");
   } finally {
     setBusy(false);
   }
 }
 
 async function deleteTask() {
-  if (!state.editingTaskId || state.busy) {
-    return;
-  }
+  if (!state.editingTaskId || state.busy) return;
 
   try {
     setBusy(true);
     await api(`/api/tasks/${state.editingTaskId}`, { method: "DELETE" });
     await loadTasks();
-    closeEditor();
+    closeSheet();
     showToast("Задача удалена", "success");
   } catch (error) {
-    handleError(error, "Ошибка удаления задачи");
+    handleError(error, "Не удалось удалить задачу");
   } finally {
     setBusy(false);
   }
 }
 
-async function initialize() {
+async function init() {
+  try {
+    requiredElement(els.createTaskBtn, "createTaskBtn");
+    requiredElement(els.searchInput, "searchInput");
+    requiredElement(els.saveTaskBtn, "saveTaskBtn");
+  } catch (error) {
+    console.error(error);
+    return;
+  }
+
   tg.ready();
   tg.expand();
   tg.MainButton.hide();
 
-  renderUserInfo();
+  renderUser();
 
   if (!state.initData) {
     showToast("Откройте приложение внутри Telegram", "error");
     return;
   }
 
-  els.searchInput.addEventListener("input", renderTasks);
+  els.searchInput.addEventListener("input", renderList);
   els.createTaskBtn.addEventListener("click", startCreate);
   els.saveTaskBtn.addEventListener("click", saveTask);
-  els.cancelEditBtn.addEventListener("click", closeEditor);
+  els.cancelEditBtn.addEventListener("click", closeSheet);
   els.deleteTaskBtn.addEventListener("click", deleteTask);
+  els.sheetBackdrop.addEventListener("click", closeSheet);
 
   try {
     setBusy(true);
@@ -359,4 +417,4 @@ async function initialize() {
   }
 }
 
-initialize();
+init();

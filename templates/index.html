@@ -8,41 +8,52 @@
   <script src="https://telegram.org/js/telegram-web-app.js"></script>
 </head>
 <body>
-  <main class="app-shell">
-    <header class="profile-head">
-      <div class="avatar-wrap">
-        <img id="userAvatar" alt="Avatar" hidden>
+  <main class="screen">
+    <section class="profile-block">
+      <div class="avatar-holder">
+        <img id="userAvatar" alt="User avatar" hidden>
         <div id="userAvatarFallback" class="avatar-fallback">TG</div>
       </div>
+
       <h1 id="userTitle">@username</h1>
-      <p class="profile-desc">
+
+      <p class="profile-description">
         Управляйте задачами и напоминаниями прямо в Telegram.
         <a id="botLink" href="https://t.me/kolendarbot" target="_blank" rel="noopener noreferrer">Перейти в бота</a>
       </p>
-    </header>
+    </section>
 
-    <section class="search-wrap">
+    <section class="search-block">
       <span class="search-icon">⌕</span>
       <input id="searchInput" type="search" placeholder="Search" autocomplete="off">
     </section>
 
-    <section class="list-wrap">
-      <h2>Мои задачи</h2>
+    <section class="list-block">
+      <div class="section-head">
+        <h2>Мои задачи</h2>
+        <span id="tasksCount" class="count-pill">0</span>
+      </div>
+
       <button id="createTaskBtn" class="create-row" type="button">
-        <span class="plus">＋</span>
+        <span class="plus-circle">+</span>
         <span>Создать новую задачу</span>
       </button>
 
       <div id="tasksList" class="task-list"></div>
-      <div id="emptyState" class="empty" hidden>По вашему запросу задач не найдено</div>
+      <div id="emptyState" class="empty-state" hidden>По вашему запросу задач не найдено</div>
     </section>
+  </main>
 
-    <section id="editorCard" class="editor" hidden>
+  <section id="editorSheet" class="editor-sheet" hidden>
+    <div id="sheetBackdrop" class="sheet-backdrop"></div>
+    <div id="sheetPanel" class="sheet-panel" role="dialog" aria-modal="true" aria-label="Редактор задачи">
+      <div class="sheet-handle"></div>
       <h3 id="editorTitle">Новая задача</h3>
-      <div class="editor-grid">
+
+      <div class="form-grid">
         <label>
           <span>Текст</span>
-          <input id="taskText" type="text" maxlength="500" placeholder="Например: Позвонить клиенту">
+          <input id="taskText" type="text" maxlength="500" placeholder="Например: Встреча с командой">
         </label>
 
         <label>
@@ -56,24 +67,24 @@
         </label>
       </div>
 
-      <div class="editor-actions">
-        <button id="saveTaskBtn" type="button">Сохранить</button>
-        <button id="cancelEditBtn" type="button" class="ghost">Отмена</button>
-        <button id="deleteTaskBtn" type="button" class="danger" hidden>Удалить</button>
+      <div class="sheet-actions">
+        <button id="saveTaskBtn" type="button" class="action primary">Сохранить</button>
+        <button id="cancelEditBtn" type="button" class="action ghost">Отмена</button>
+        <button id="deleteTaskBtn" type="button" class="action danger" hidden>Удалить</button>
       </div>
-    </section>
-  </main>
+    </div>
+  </section>
 
   <div id="toastStack" class="toast-stack" aria-live="polite" aria-atomic="true"></div>
 
   <template id="taskRowTemplate">
     <article class="task-row">
-      <div class="task-avatar"></div>
-      <button class="task-main" type="button">
-        <span class="task-title"></span>
-        <span class="task-sub"></span>
+      <div class="task-row-avatar"></div>
+      <button class="task-row-main" type="button">
+        <span class="task-row-title"></span>
+        <span class="task-row-subtitle"></span>
       </button>
-      <button class="task-edit" type="button" aria-label="Редактировать">›</button>
+      <button class="task-row-arrow" type="button" aria-label="Открыть">›</button>
     </article>
   </template>
 
