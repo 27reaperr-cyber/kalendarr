@@ -260,7 +260,6 @@ async def send_reminders(bot: Bot) -> None:
                 f"<b>{task['text']}</b>\n"
                 f"🕒 {dt_local} ({user_tz})",
                 parse_mode=ParseMode.HTML,
-                reply_markup=main_menu_kb(),
             )
             mark_reminded(task["id"])
             logger.info(
