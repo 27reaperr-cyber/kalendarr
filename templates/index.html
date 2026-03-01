@@ -1,0 +1,64 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+  <title>Календарь</title>
+  <link rel="stylesheet" href="/static/styles.css">
+  <script src="https://telegram.org/js/telegram-web-app.js"></script>
+</head>
+<body>
+  <main class="container">
+    <header class="hero card">
+      <h1>Мой календарь</h1>
+      <p>Задачи и напоминания в Telegram</p>
+    </header>
+
+    <section class="card">
+      <h2>Часовой пояс</h2>
+      <div class="row">
+        <input id="timezoneInput" type="text" placeholder="Например: Europe/Moscow" autocomplete="off">
+        <button id="saveTimezoneBtn" type="button">Сохранить</button>
+      </div>
+      <small id="timezoneHint">Используйте IANA-таймзону, например Europe/Moscow.</small>
+    </section>
+
+    <section class="card">
+      <h2 id="formTitle">Новая задача</h2>
+      <div class="column">
+        <input id="taskText" type="text" maxlength="500" placeholder="Текст задачи">
+        <input id="taskDatetime" type="datetime-local">
+        <div class="row" id="editActions" hidden>
+          <button id="cancelEditBtn" type="button" class="ghost">Отмена</button>
+        </div>
+      </div>
+    </section>
+
+    <section class="card">
+      <div class="row header-row">
+        <h2>Задачи</h2>
+        <button id="refreshBtn" type="button" class="ghost">Обновить</button>
+      </div>
+      <div id="loading" class="status" hidden>Загрузка...</div>
+      <div id="error" class="status error" hidden></div>
+      <div id="tasks" class="tasks"></div>
+      <div id="emptyState" class="status" hidden>Пока нет задач</div>
+    </section>
+  </main>
+
+  <template id="taskTemplate">
+    <article class="task-card">
+      <div class="task-content">
+        <h3 class="task-title"></h3>
+        <p class="task-time"></p>
+      </div>
+      <div class="task-actions">
+        <button type="button" data-action="edit">Редактировать</button>
+        <button type="button" data-action="delete" class="danger">Удалить</button>
+      </div>
+    </article>
+  </template>
+
+  <script src="/static/app.js"></script>
+</body>
+</html>
