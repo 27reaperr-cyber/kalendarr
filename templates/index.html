@@ -8,89 +8,72 @@
   <script src="https://telegram.org/js/telegram-web-app.js"></script>
 </head>
 <body>
-  <main class="container">
-    <header class="hero card">
-      <div class="hero-head">
-        <div>
-          <h1>Календарь @kolendarbot</h1>
-          <p>Планируйте задачи и получайте напоминания вовремя</p>
-        </div>
-        <span class="chip" id="tasksCount">0 задач</span>
+  <main class="app-shell">
+    <header class="profile-head">
+      <div class="avatar-wrap">
+        <img id="userAvatar" alt="Avatar" hidden>
+        <div id="userAvatarFallback" class="avatar-fallback">TG</div>
       </div>
-
-      <section class="profile">
-        <div class="avatar-wrap">
-          <img id="userAvatar" alt="Avatar" hidden>
-          <div id="userAvatarFallback" class="avatar-fallback">TG</div>
-        </div>
-        <div class="profile-info">
-          <strong id="userName">Пользователь Telegram</strong>
-          <span id="userUsername">@username</span>
-          <span id="userTariff" class="chip chip-soft">Бесплатный тариф</span>
-          <span id="timezoneCurrent" class="tz-line">Текущий пояс: -</span>
-        </div>
-      </section>
+      <h1 id="userTitle">@username</h1>
+      <p class="profile-desc">
+        Управляйте задачами и напоминаниями прямо в Telegram.
+        <a id="botLink" href="https://t.me/kolendarbot" target="_blank" rel="noopener noreferrer">Перейти в бота</a>
+      </p>
     </header>
 
-    <nav class="tabs card" aria-label="Вкладки">
-      <button id="tabAddBtn" type="button" class="tab-btn active" data-tab="add">Добавить</button>
-      <button id="tabTasksBtn" type="button" class="tab-btn" data-tab="tasks">Задачи</button>
-    </nav>
-
-    <section id="loadingBar" class="loading-bar" hidden>
-      <span class="spinner" aria-hidden="true"></span>
-      <span>Загрузка...</span>
-      <span class="loading-shimmer" aria-hidden="true"></span>
+    <section class="search-wrap">
+      <span class="search-icon">⌕</span>
+      <input id="searchInput" type="search" placeholder="Search" autocomplete="off">
     </section>
 
-    <section id="tabsViewport" class="tabs-viewport">
-      <section id="tabAdd" class="tab-panel active" aria-labelledby="tabAddBtn">
-        <section class="card">
-          <h2>Часовой пояс</h2>
-          <div class="row timezone-row">
-            <input id="timezoneInput" type="text" placeholder="Например: Europe/Moscow" autocomplete="off" spellcheck="false">
-            <button id="saveTimezoneBtn" type="button">Сохранить</button>
-          </div>
-          <small id="timezoneHint">Можно изменить здесь или отправить геопозицию в боте через 📎 → Геопозиция.</small>
-        </section>
+    <section class="list-wrap">
+      <h2>Мои задачи</h2>
+      <button id="createTaskBtn" class="create-row" type="button">
+        <span class="plus">＋</span>
+        <span>Создать новую задачу</span>
+      </button>
 
-        <section class="card">
-          <h2 id="formTitle">Новая задача</h2>
-          <div class="column">
-            <input id="taskText" type="text" maxlength="500" placeholder="Текст задачи">
-            <input id="taskDatetime" type="datetime-local" step="60">
-            <div class="row" id="editActions" hidden>
-              <button id="cancelEditBtn" type="button" class="ghost">Отмена редактирования</button>
-            </div>
-          </div>
-        </section>
-      </section>
+      <div id="tasksList" class="task-list"></div>
+      <div id="emptyState" class="empty" hidden>По вашему запросу задач не найдено</div>
+    </section>
 
-      <section id="tabTasks" class="tab-panel" aria-labelledby="tabTasksBtn" hidden>
-        <section class="card">
-          <div class="row header-row">
-            <h2>Список задач</h2>
-            <button id="refreshBtn" type="button" class="ghost">Обновить</button>
-          </div>
-          <div id="tasks" class="tasks"></div>
-          <div id="emptyState" class="status" hidden>Пока нет задач</div>
-        </section>
-      </section>
+    <section id="editorCard" class="editor" hidden>
+      <h3 id="editorTitle">Новая задача</h3>
+      <div class="editor-grid">
+        <label>
+          <span>Текст</span>
+          <input id="taskText" type="text" maxlength="500" placeholder="Например: Позвонить клиенту">
+        </label>
+
+        <label>
+          <span>Дата и время</span>
+          <input id="taskDatetime" type="datetime-local" step="60">
+        </label>
+
+        <label>
+          <span>Часовой пояс</span>
+          <input id="timezoneInput" type="text" placeholder="Europe/Moscow" autocomplete="off" spellcheck="false">
+        </label>
+      </div>
+
+      <div class="editor-actions">
+        <button id="saveTaskBtn" type="button">Сохранить</button>
+        <button id="cancelEditBtn" type="button" class="ghost">Отмена</button>
+        <button id="deleteTaskBtn" type="button" class="danger" hidden>Удалить</button>
+      </div>
     </section>
   </main>
 
   <div id="toastStack" class="toast-stack" aria-live="polite" aria-atomic="true"></div>
 
-  <template id="taskTemplate">
-    <article class="task-card">
-      <div class="task-content">
-        <h3 class="task-title"></h3>
-        <p class="task-time"></p>
-      </div>
-      <div class="task-actions">
-        <button type="button" data-action="edit">Редактировать</button>
-        <button type="button" data-action="delete" class="danger">Удалить</button>
-      </div>
+  <template id="taskRowTemplate">
+    <article class="task-row">
+      <div class="task-avatar"></div>
+      <button class="task-main" type="button">
+        <span class="task-title"></span>
+        <span class="task-sub"></span>
+      </button>
+      <button class="task-edit" type="button" aria-label="Редактировать">›</button>
     </article>
   </template>
 
