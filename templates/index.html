@@ -10,8 +10,14 @@
 <body>
   <main class="container">
     <header class="hero card">
-      <h1>Мой календарь</h1>
-      <p>Задачи и напоминания в Telegram</p>
+      <div class="hero-top">
+        <h1>Календарь @kolendarbot</h1>
+        <p>Планируйте задачи и получайте напоминания вовремя</p>
+      </div>
+      <div class="hero-meta">
+        <span class="chip" id="tasksCount">0 задач</span>
+        <span class="chip chip-muted" id="timezoneCurrent">Текущий пояс: -</span>
+      </div>
     </header>
 
     <nav class="tabs card" aria-label="Вкладки">
@@ -27,21 +33,20 @@
     <section id="tabAdd" class="tab-panel active" aria-labelledby="tabAddBtn">
       <section class="card">
         <h2>Часовой пояс</h2>
-        <p id="timezoneCurrent" class="timezone-current">Текущий: -</p>
-        <div class="row">
-          <input id="timezoneInput" type="text" placeholder="Например: Europe/Moscow" autocomplete="off">
+        <div class="row timezone-row">
+          <input id="timezoneInput" type="text" placeholder="Например: Europe/Moscow" autocomplete="off" spellcheck="false">
           <button id="saveTimezoneBtn" type="button">Сохранить</button>
         </div>
-        <small id="timezoneHint">Если вы выбирали пояс через геолокацию в боте, он уже подставлен здесь.</small>
+        <small id="timezoneHint">Можно изменить здесь или отправить геопозицию в боте через 📎 → Геопозиция.</small>
       </section>
 
       <section class="card">
         <h2 id="formTitle">Новая задача</h2>
         <div class="column">
           <input id="taskText" type="text" maxlength="500" placeholder="Текст задачи">
-          <input id="taskDatetime" type="datetime-local">
+          <input id="taskDatetime" type="datetime-local" step="60">
           <div class="row" id="editActions" hidden>
-            <button id="cancelEditBtn" type="button" class="ghost">Отмена</button>
+            <button id="cancelEditBtn" type="button" class="ghost">Отмена редактирования</button>
           </div>
         </div>
       </section>
@@ -50,7 +55,7 @@
     <section id="tabTasks" class="tab-panel" aria-labelledby="tabTasksBtn" hidden>
       <section class="card">
         <div class="row header-row">
-          <h2>Задачи</h2>
+          <h2>Список задач</h2>
           <button id="refreshBtn" type="button" class="ghost">Обновить</button>
         </div>
         <div id="tasks" class="tasks"></div>

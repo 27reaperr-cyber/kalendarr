@@ -11,9 +11,7 @@ from aiogram.types import (
     CallbackQuery,
     InlineKeyboardButton,
     InlineKeyboardMarkup,
-    KeyboardButton,
     Message,
-    ReplyKeyboardMarkup,
     ReplyKeyboardRemove,
     WebAppInfo,
 )
@@ -181,16 +179,6 @@ def back_to_main_kb() -> InlineKeyboardMarkup:
     )
 
 
-def location_request_kb() -> ReplyKeyboardMarkup:
-    return ReplyKeyboardMarkup(
-        keyboard=[
-            [KeyboardButton(text="📍 Отправить геопозицию", request_location=True)],
-        ],
-        resize_keyboard=True,
-        one_time_keyboard=True,
-    )
-
-
 def local_to_utc(local_dt: str, tz_name: str) -> str:
     tz = pytz.timezone(tz_name)
     naive = datetime.strptime(local_dt, "%Y-%m-%d %H:%M")
@@ -208,9 +196,9 @@ def utc_to_local(utc_dt: str, tz_name: str) -> str:
 async def cmd_start(message: Message) -> None:
     ensure_user(message.from_user.id)
     await message.answer(
-        "<b>Личный календарь</b>\n\n"
+        "<b>Календарь @kolendarbot</b>\n\n"
         "Управляйте задачами через Telegram Web App. "
-        "Напоминания приходят за 30 минут до события.\n\n"
+        "Напоминания приходят за определенное время до события.\n\n"
         "При необходимости обновите часовой пояс кнопкой ниже.",
         parse_mode=ParseMode.HTML,
         reply_markup=main_menu_kb(),
@@ -231,14 +219,10 @@ async def cb_main_menu(call: CallbackQuery) -> None:
 async def cb_menu_tz(call: CallbackQuery) -> None:
     await call.message.edit_text(
         "🌍 <b>Установка часового пояса</b>\n\n"
-        "Нажмите кнопку <b>«📍 Отправить геопозицию»</b> ниже.\n"
-        "Бот определит часовой пояс автоматически.",
+        "Отправьте своё местоположение через кнопку 📎 → Геопозиция.\n"
+        "Или нажмите «Главное меню».",
         parse_mode=ParseMode.HTML,
         reply_markup=back_to_main_kb(),
-    )
-    await call.message.answer(
-        "👇 Отправьте геопозицию:",
-        reply_markup=location_request_kb(),
     )
     await call.answer()
 
@@ -273,7 +257,7 @@ async def send_reminders(bot: Bot) -> None:
             await bot.send_message(
                 task["user_id"],
                 "⏰ <b>Напоминание</b>\n\n"
-                f"Через 30 минут: <b>{task['text']}</b>\n"
+                f"<b>{task['text']}</b>\n"
                 f"🕒 {dt_local} ({user_tz})",
                 parse_mode=ParseMode.HTML,
                 reply_markup=main_menu_kb(),

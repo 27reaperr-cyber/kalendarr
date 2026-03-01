@@ -6,6 +6,7 @@ const state = {
   initData: tg.initData || "",
   activeTab: "add",
   timezone: "",
+  busy: false,
 };
 
 const els = {
@@ -13,6 +14,7 @@ const els = {
   tabTasksBtn: document.getElementById("tabTasksBtn"),
   tabAdd: document.getElementById("tabAdd"),
   tabTasks: document.getElementById("tabTasks"),
+  tasksCount: document.getElementById("tasksCount"),
   taskText: document.getElementById("taskText"),
   taskDatetime: document.getElementById("taskDatetime"),
   formTitle: document.getElementById("formTitle"),
@@ -28,6 +30,14 @@ const els = {
   emptyState: document.getElementById("emptyState"),
   taskTemplate: document.getElementById("taskTemplate"),
 };
+
+function setBusy(value) {
+  state.busy = value;
+  showLoading(value);
+  els.saveTimezoneBtn.disabled = value;
+  els.refreshBtn.disabled = value;
+  tg.MainButton.isActive = !value;
+}
 
 function switchTab(tabName) {
   state.activeTab = tabName;
@@ -45,23 +55,19 @@ function switchTab(tabName) {
 }
 
 function updateMainButtonState() {
-  if (!state.initData) {
-    tg.MainButton.hide();
-    return;
-  }
-
-  if (state.activeTab !== "add") {
+  if (!state.initData || state.activeTab !== "add") {
     tg.MainButton.hide();
     return;
   }
 
   tg.MainButton.show();
+  tg.MainButton.isActive = !state.busy;
   if (state.editingTaskId) {
     tg.MainButton.setText("Сохранить изменения");
-    tg.MainButton.color = "#1d95d5";
+    tg.MainButton.color = "#1b7fb8";
   } else {
     tg.MainButton.setText("Добавить задачу");
-    tg.MainButton.color = "#2aabee";
+    tg.MainButton.color = "#2497d9";
   }
 }
 
@@ -104,12 +110,23 @@ async function api(path, options = {}) {
   return data;
 }
 
+function normalizeDatetimeValue(value) {
+  // datetime-local may contain seconds, backend expects YYYY-MM-DD HH:MM
+  return value.slice(0, 16);
+}
+
 function localInputToApi(value) {
-  return value.replace("T", " ");
+  return normalizeDatetimeValue(value).replace("T", " ");
 }
 
 function apiToLocalInput(value) {
   return value.replace(" ", "T");
+}
+
+function updateTasksCount() {
+  const count = state.tasks.length;
+  const label = count === 1 ? "задача" : (count >= 2 && count <= 4 ? "задачи" : "задач");
+  els.tasksCount.textContent = `${count} ${label}`;
 }
 
 function resetForm() {
@@ -136,6 +153,7 @@ function renderTasks() {
 
   if (!state.tasks.length) {
     els.emptyState.hidden = false;
+    updateTasksCount();
     return;
   }
 
@@ -152,7 +170,7 @@ function renderTasks() {
     node.querySelector('[data-action="delete"]').addEventListener("click", async () => {
       try {
         showError("");
-        showLoading(true);
+        setBusy(true);
         await api(`/api/tasks/${task.id}`, { method: "DELETE" });
         await loadTasks();
         if (state.editingTaskId === task.id) {
@@ -161,18 +179,20 @@ function renderTasks() {
       } catch (error) {
         showError(error.message);
       } finally {
-        showLoading(false);
+        setBusy(false);
       }
     });
 
     els.tasks.appendChild(node);
   });
+
+  updateTasksCount();
 }
 
 function renderTimezone(timezone) {
   state.timezone = timezone;
   els.timezoneInput.value = timezone;
-  els.timezoneCurrent.textContent = `Текущий: ${timezone}`;
+  els.timezoneCurrent.textContent = `Текущий пояс: ${timezone}`;
 }
 
 async function loadTimezone() {
@@ -189,7 +209,7 @@ async function saveTimezone() {
 
   try {
     showError("");
-    showLoading(true);
+    setBusy(true);
     const data = await api("/api/user/timezone", {
       method: "PUT",
       body: JSON.stringify({ timezone }),
@@ -199,19 +219,23 @@ async function saveTimezone() {
   } catch (error) {
     showError(error.message);
   } finally {
-    showLoading(false);
+    setBusy(false);
   }
 }
 
 async function loadTasks() {
   const tasks = await api("/api/tasks", { method: "GET" });
-  state.tasks = tasks;
+  state.tasks = [...tasks].sort((a, b) => a.scheduled_utc.localeCompare(b.scheduled_utc));
   renderTasks();
 }
 
 async function submitTask() {
+  if (state.busy) {
+    return;
+  }
+
   const text = els.taskText.value.trim();
-  const datetime = els.taskDatetime.value;
+  const datetime = normalizeDatetimeValue(els.taskDatetime.value);
 
   if (!text) {
     showError("Введите текст задачи");
@@ -229,7 +253,7 @@ async function submitTask() {
 
   try {
     showError("");
-    showLoading(true);
+    setBusy(true);
 
     if (state.editingTaskId) {
       await api(`/api/tasks/${state.editingTaskId}`, {
@@ -249,7 +273,7 @@ async function submitTask() {
   } catch (error) {
     showError(error.message);
   } finally {
-    showLoading(false);
+    setBusy(false);
   }
 }
 
@@ -265,12 +289,12 @@ async function initialize() {
   els.refreshBtn.addEventListener("click", async () => {
     try {
       showError("");
-      showLoading(true);
+      setBusy(true);
       await loadTasks();
     } catch (error) {
       showError(error.message);
     } finally {
-      showLoading(false);
+      setBusy(false);
     }
   });
   els.cancelEditBtn.addEventListener("click", resetForm);
@@ -282,13 +306,13 @@ async function initialize() {
   }
 
   try {
-    showLoading(true);
+    setBusy(true);
     await Promise.all([loadTimezone(), loadTasks()]);
     switchTab("add");
   } catch (error) {
     showError(error.message);
   } finally {
-    showLoading(false);
+    setBusy(false);
   }
 }
 

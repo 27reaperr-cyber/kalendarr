@@ -1,14 +1,15 @@
 :root {
-  --bg: #f4f7fb;
+  --bg: #edf3fb;
   --card: #ffffff;
-  --text: #1b2a41;
-  --muted: #617187;
-  --primary: #2aabee;
-  --primary-dark: #1d95d5;
-  --danger: #e15b64;
-  --border: #dce5ef;
-  --shadow: 0 8px 24px rgba(23, 41, 65, 0.08);
-  --radius: 16px;
+  --text: #1c2b3f;
+  --muted: #637992;
+  --primary: #2497d9;
+  --primary-strong: #1b7fb8;
+  --danger: #d65564;
+  --border: #d7e2f1;
+  --ring: rgba(36, 151, 217, 0.25);
+  --shadow: 0 14px 28px rgba(16, 40, 69, 0.08);
+  --radius: 18px;
 }
 
 * {
@@ -17,16 +18,16 @@
 
 body {
   margin: 0;
-  background:
-    radial-gradient(1200px 600px at 100% -10%, rgba(42, 171, 238, 0.16), transparent 70%),
-    radial-gradient(900px 500px at -10% 120%, rgba(42, 171, 238, 0.12), transparent 70%),
-    var(--bg);
   color: var(--text);
   font-family: "Segoe UI", "SF Pro Display", "Helvetica Neue", sans-serif;
+  background:
+    radial-gradient(900px 520px at 95% -10%, rgba(36, 151, 217, 0.18), transparent 72%),
+    radial-gradient(760px 400px at -5% 105%, rgba(36, 151, 217, 0.14), transparent 72%),
+    var(--bg);
 }
 
 .container {
-  max-width: 760px;
+  width: min(920px, 100%);
   margin: 0 auto;
   padding: 14px;
   padding-bottom: 32px;
@@ -42,13 +43,42 @@ body {
   padding: 14px;
 }
 
-.hero h1 {
-  margin: 0;
-  font-size: 1.35rem;
+.hero {
+  display: grid;
+  gap: 10px;
 }
 
-.hero p {
-  margin: 6px 0 0;
+.hero-top h1 {
+  margin: 0;
+  font-size: clamp(1.15rem, 2.6vw, 1.55rem);
+}
+
+.hero-top p {
+  margin: 7px 0 0;
+  color: var(--muted);
+}
+
+.hero-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.chip {
+  display: inline-flex;
+  align-items: center;
+  padding: 7px 10px;
+  border-radius: 999px;
+  border: 1px solid #cfe6f6;
+  background: #eff8ff;
+  color: #196f9f;
+  font-size: 0.84rem;
+  font-weight: 600;
+}
+
+.chip-muted {
+  background: #f6f9fd;
+  border-color: var(--border);
   color: var(--muted);
 }
 
@@ -56,22 +86,26 @@ body {
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 8px;
+  position: sticky;
+  top: 8px;
+  z-index: 5;
 }
 
 .tab-btn {
   border-radius: 12px;
-  border: 1px solid #cae7f8;
-  background: #f6fbff;
-  color: #1d95d5;
+  border: 1px solid #c6e4f5;
+  background: #f4faff;
+  color: #1b7fb8;
   padding: 11px 12px;
   font-size: 0.95rem;
+  font-weight: 600;
   cursor: pointer;
 }
 
 .tab-btn.active {
   background: var(--primary);
-  border-color: transparent;
   color: #fff;
+  border-color: transparent;
 }
 
 .tab-panel {
@@ -107,7 +141,7 @@ input {
 }
 
 input:focus {
-  outline: 2px solid rgba(42, 171, 238, 0.25);
+  outline: 2px solid var(--ring);
   border-color: var(--primary);
 }
 
@@ -120,27 +154,27 @@ button {
 }
 
 button:hover {
-  background: var(--primary-dark);
+  background: var(--primary-strong);
 }
 
 button.ghost {
   background: #f6fbff;
-  color: var(--primary-dark);
-  border-color: #cae7f8;
+  color: #1b7fb8;
+  border-color: #c6e4f5;
 }
 
 button.ghost:hover {
-  background: #e9f6ff;
+  background: #eaf6ff;
 }
 
 button.danger {
-  background: #fff3f3;
+  background: #fff4f5;
   color: var(--danger);
-  border-color: #ffd5d9;
+  border-color: #ffd7dc;
 }
 
 button.danger:hover {
-  background: #ffe9eb;
+  background: #ffe9ec;
 }
 
 .row {
@@ -154,25 +188,19 @@ button.danger:hover {
   gap: 8px;
 }
 
-.timezone-current {
-  margin: 0 0 8px;
-  color: var(--text);
-  font-weight: 600;
-}
-
 #timezoneHint {
   color: var(--muted);
 }
 
 .tasks {
   display: grid;
-  gap: 8px;
+  gap: 9px;
 }
 
 .task-card {
   border: 1px solid var(--border);
   border-radius: 14px;
-  padding: 10px;
+  padding: 11px;
   display: grid;
   gap: 10px;
   background: #fff;
@@ -181,6 +209,7 @@ button.danger:hover {
 .task-title {
   margin: 0;
   font-size: 0.98rem;
+  line-height: 1.35;
 }
 
 .task-time {
@@ -205,8 +234,19 @@ button.danger:hover {
 .status.error {
   color: #9f2f37;
   border-style: solid;
-  border-color: #ffd5d9;
-  background: #fff4f4;
+  border-color: #ffd7dc;
+  background: #fff4f5;
+}
+
+@media (min-width: 861px) {
+  .tab-panel.active {
+    grid-template-columns: 1fr 1fr;
+    align-items: start;
+  }
+
+  #tabTasks.tab-panel.active {
+    grid-template-columns: 1fr;
+  }
 }
 
 @media (max-width: 560px) {
@@ -217,5 +257,9 @@ button.danger:hover {
 
   .task-actions {
     flex-direction: column;
+  }
+
+  .tabs {
+    top: 0;
   }
 }
